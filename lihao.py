@@ -98,10 +98,12 @@ class Map(object):
         self.height = height
         self.width = width
         self.np = self.get_point_yx(*np)
-        self.me = Snake(self, snakes.pop(me))
+        if me is not None:
+            self.me = Snake(self, snakes.pop(me))
         self.snakes = [Snake(self, snake) for snake in snakes]
 
         self.rooms = {(x,y):Room(x,y) for x,y in itertools.product(range(width), range(height), repeat=1)}
+        self.np_room = self.rooms[(self.np.x, self.np.y)]
         for position, room in self.rooms.items():
             position_x, position_y = position
             room.north = self.rooms[((position_x) % width, (position_y - 1) % height)]
@@ -152,9 +154,6 @@ class Map(object):
             print
         color_console.set_text_attr(color_console.FOREGROUND_INTENSITY)
 
-    def expend_map(self):
-        self.expend_matrix = [[DummyPoint(i,j, self.get_point(i,j)) for j in range(self.height*3)] for i in range(self.width*3)]
-
 
     def route_directions(self, route):
         directions = []
@@ -172,14 +171,20 @@ class Map(object):
         return directions
 
     def distance(self, start_room, end_room):
-        min_distance = min(abs(start_room.x - end_room.x), abs(start_room.x - self.width - end_room.x)) + \
-            min(abs(start_room.y - end_room.y), abs(start_room.y - self.height - end_room.y))
+        if isinstance(start_room, tuple):
+            start_room = self.rooms[start_room]
+        if isinstance(end_room, tuple):
+            end_room = self.rooms[end_room]
+        min_distance = min(abs(start_room.x - end_room.x),
+                           abs(start_room.x - self.width - end_room.x),
+                           abs(start_room.x + self.width - end_room.x)) + \
+                        min(abs(start_room.y - end_room.y),
+                            abs(start_room.y - self.height - end_room.y),
+                            abs(start_room.y + self.height - end_room.y))
         return min_distance
 
-
-
     #@tail_call_optimized
-    def find_way(self, start_room, end_room, routes, route=None, max_steps=150, depth=0):
+    def find_way_fast(self, start_room, end_room, routes, route=None, max_steps=150, depth=0):
         min_distance = self.distance(start_room, end_room)
         if route is None:
             route = []
@@ -187,9 +192,6 @@ class Map(object):
         if len(self.route_directions(route))>=6:
             return
 
-
-        #if len(route) >= max_steps:
-        #    return
         if depth >= max_steps:
             return
 
@@ -203,7 +205,7 @@ class Map(object):
                 continue
 
             if self.distance(exit, end_room) > min_distance:
-                # shortest way
+                # check only shortest way
                continue
 
             # if exit.danger >= 1:
@@ -216,9 +218,12 @@ class Map(object):
                 routes.append(route_copy)
             else:
                 # check if not walked
-                self.find_way(exit, end_room, routes, route_copy, max_steps=max_steps, depth=depth+1)
+                self.find_way_fast(exit, end_room, routes, route_copy, max_steps=max_steps, depth=depth+1)
 
-    def render_dangerous(self, snake_heads=None, depth=0, max_depth=3):
+    def find_way_slow(self, start_room, end_room, routes, route=None, max_steps=150, depth=0):
+        pass
+
+    def render_dangerous(self, snake_heads=None, depth=0, max_depth=5):
         '''
             compute oppotunity of blocks each snake will go
 
@@ -243,51 +248,35 @@ class Map(object):
         self.render_dangerous(all_exits, depth+1, max_depth=max_depth)
 
 
-
-
-
 def hli(width, height, snakes, i, np):
     map = Map(width, height, snakes, i, np)
+    map.render_dangerous()
 
-    # for snake in map.snakes:
-    #     for point in snake.get_points():
-    #         map.get_point(point.x, point.y).has_shake=True
-
-    bean_y = np[0]
-    bean_x = np[1]
-
-    map.expend_map()
-
-
-
-
-    map.print_map()
-    #map.find_way(map.me)
-
-
-
-#def nearest_distance(map, p_snake_head, p_bean):
 
 def test_routes(map):
-    start_room = map.rooms[(0, 0)]
-    end_room = map.rooms[(5, 8)]
+    start_room = map.rooms[(map.me.head.x, map.me.head.y)]
 
     map.render_dangerous()
 
     routes = []
 
-    start = datetime.datetime.now()
-    map.find_way(start_room=start_room, end_room=end_room, routes=routes, max_steps=max_steps)
-    # print list(routes)
-    end = datetime.datetime.now()
+    #max_steps = (map.width + map.height) / 2 + 1
+    max_steps = 15
+    map.find_way_fast(start_room=start_room, end_room=map.np_room, routes=routes, max_steps=max_steps)
 
-    for i in range(len(routes)):
-        route = routes[i]
-        print 'route: %d, distance: %d, %s' % (i, len(route), route)
+    # for i in range(len(routes)):
+    #     route = routes[i]
+    #     print 'route: %d, distance: %d, danger: %d,  %s' % (i, len(route), sum([y.danger for y in route]), route)
 
-    print (end - start).total_seconds()
-    print len(routes)
-    print routes[0]
+    if len(routes)>0:
+        print '%d fast routes found.' % len(routes)
+        sorted(routes, lambda route1, route2: sum([x.danger for x in route1]) >= sum([y.danger for y in route2]))
+
+        route = routes[0]
+        print 'route: distance: %d, danger: %d,  %s' % (len(route), sum([y.danger for y in route]), route)
+
+    else:
+        print 'not fast route'
 
 def test_dangerous(map):
     map.render_dangerous()
@@ -300,12 +289,19 @@ if __name__ == '__main__':
     #hli(100, 100, [[[0,0],[0,1]], [[2,2], [3,2]]], 1, [0,42])
     #hli(4, 4, [[[0, 0], [0, 1]], [[1, 1], [1, 2]]], 1, [0, 3])
 
-    width = 30
-    height = 30
-    #max_steps = 15
-    max_steps = (width + height) / 2 + 1
-    map = Map(width, height, [[[0, 0], [0, 1]], [[1, 1], [1, 2]]], 1, [0, 3])
+    width = 60
+    height = 60
 
-    test_dangerous(map)
+    #map = Map(width, height, [[[0, 0], [0, 1]], [[1, 1], [1, 2]]], 1, [0, 3])
+    #map = Map(width, height, [[[0, 0], [0, 1]], [[10, 10], [10, 11]]], 0, [10, 15])
+    map = Map(width, height, [[[0, 0], [0, 1]]], 0, [10, 15])
+    map = Map(width, height, [[[0, 0]]], 0, [30, 30])
+
+    start = datetime.datetime.now()
+    #test_dangerous(map)
+    test_routes(map)
+
+    end = datetime.datetime.now()
+    print '%f seconds.' % (end - start).total_seconds()
 
 
