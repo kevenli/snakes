@@ -18,6 +18,10 @@ class Snake(object):
             points += self.body
         return points
 
+    @property
+    def length(self):
+        return 1 + len(self.body)
+
 
 class Point(object):
     def __init__(self, x, y):
@@ -28,7 +32,7 @@ class Point(object):
         self.__dict__.__setitem__(key, value)
 
     def __getattr__(self, item):
-        if self.__dict__.has_key(item):
+        if item in self.__dict__:
             return self.__dict__.__getitem__(item)
 
 
@@ -72,9 +76,9 @@ class Map(object):
             self.me = Snake(self, snakes.pop(me))
         self.snakes = [Snake(self, snake) for snake in snakes]
 
-        self.rooms = {(x, y): Room(x, y) for x, y in itertools.product(range(width), range(height), repeat=1)}
+        self.rooms = {(x, y): Room(x, y) for x, y in itertools.product(list(range(width)), list(range(height)), repeat=1)}
         self.np_room = self.rooms[(self.np.x, self.np.y)]
-        for position, room in self.rooms.items():
+        for position, room in list(self.rooms.items()):
             position_x, position_y = position
             room.north = self.rooms[((position_x) % width, (position_y - 1) % height)]
             room.south = self.rooms[((position_x) % width, (position_y + 1) % height)]
@@ -162,7 +166,7 @@ class Map(object):
         if depth >= max_steps:
             return
 
-        for exit in start_room.exits.values():
+        for exit in list(start_room.exits.values()):
             if exit in route:
                 # circle
                 continue
@@ -194,7 +198,7 @@ class Map(object):
         if isinstance(end_room, tuple):
             end_room = self.rooms[end_room]
         # initialize
-        for room in self.rooms.values():
+        for room in list(self.rooms.values()):
             room.f = None
             room.g = None
             room.h = None
@@ -209,11 +213,11 @@ class Map(object):
                     node.g = 1
                     node.h = self.distance(node, end_room)
                     node.f = node.g + node.h
-            current_node = sorted(open_list, lambda a, b: cmp(a.f, b.f))[0]
+            current_node = sorted(open_list, key = lambda a: a.f)[0]
             open_list.remove(current_node)
             close_list.append(current_node)
 
-            for exit in current_node.exits.values():
+            for exit in list(current_node.exits.values()):
                 if exit.has_snake:
                     continue
 
@@ -262,7 +266,7 @@ class Map(object):
 
         all_exits = []
         for snake_head in snake_heads:
-            all_exits += snake_head.exits.values()
+            all_exits += list(snake_head.exits.values())
         # all_exits = [snake_head.exits.values() for snake_head in snake_heads]
         for exit in all_exits:
             exit.danger += (1.0 / 4 ** depth)
@@ -270,11 +274,40 @@ class Map(object):
         self.mark_dangerous(all_exits, depth + 1, max_depth=max_depth)
 
     def safe_step(self, next_step):
-        return True
+        if len(self.me.body) == 0:
+            return True
+        return self.find_longest_way(next_step, self.me.body[-1], max_steps=self.me.length) is not None
+
+
+    def find_longest_way(self, start_room, end_room, route=None, max_steps=10):
+        if route is None:
+            route = []
+        for exit in start_room.exits.values():
+            if len(route) > max_steps:
+                return route
+
+            if exit.has_snake:
+                continue
+
+            if exit.danger >= 1:
+                continue
+
+            if exit in route:
+                continue
+
+            if exit == end_room:
+                continue
+
+            route_copy = copy.copy(route)
+            route_copy.append(exit)
+
+            exit_route = self.find_longest_way(exit, end_room, route_copy, max_steps=max_steps)
+            if exit_route is not None:
+                return exit_route
 
 
 def hli(width, height, snakes, i, np):
-    game_map = Map(width, height, snakes, i, np)
+    game_map = Map(width, height, copy.copy(snakes), i, copy.copy(np))
     game_map.mark_dangerous()
     start_room = game_map.rooms[(game_map.me.head.x, game_map.me.head.y)]
     end_rooms = [game_map.np_room, ((game_map.me.head.x + game_map.width/2) % game_map.width,
@@ -284,7 +317,7 @@ def hli(width, height, snakes, i, np):
 
     dirs = {'north' : 0, 'east': 1, 'south': 2, 'west': 3}
     for end_room in end_rooms:
-        route = game_map.find_way_astar(start_room=start_room, end_room=game_map.np_room)
+        route = game_map.find_way_astar(start_room=start_room, end_room=end_room)
 
         if route is not None:
             next_step = route[0]
@@ -292,13 +325,15 @@ def hli(width, height, snakes, i, np):
             if not game_map.safe_step(next_step):
                 continue
 
-            for dir in dirs.keys():
+            for dir in list(dirs.keys()):
                 if start_room.exits[dir] == next_step:
                     return dirs[dir]
 
-    safe_exits = [exit for exit in start_room.exits if exit.danger < 1 and not exit.has_snake]
-    next_step = safe_exits[random.randint(len(safe_exits))]
-    for dir in dirs.keys():
+    safe_exits = [exit for exit in start_room.exits.values() if exit.danger < 1 and not exit.has_snake]
+    if not safe_exits:
+        return random.choice([0,1,2,3])
+    next_step = random.choice(safe_exits)
+    for dir in list(dirs.keys()):
         if start_room.exits[dir] == next_step:
             return dirs[dir]
 
@@ -319,7 +354,7 @@ def test_routes(map):
 
     if len(routes) > 0:
         #print '%d fast routes found.' % len(routes)
-        sorted(routes, lambda route1, route2: sum([x.danger for x in route1]) >= sum([y.danger for y in route2]))
+        sorted(routes, key = lambda x : x.danger)
 
         route = routes[0]
         #print 'route: distance: %d, danger: %d,  %s' % (len(route), sum([y.danger for y in route]), route)

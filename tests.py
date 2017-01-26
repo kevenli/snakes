@@ -111,3 +111,31 @@ class MapTest(TestCase):
         print route
         print len(route)
 
+
+    def test_find_way_astar_self_tail(self):
+        width = 100
+        height = 100
+        map = Map(width, height, [[[1, 0], [1,1]], [[0, 3], [1, 3], [2, 3]]], 0, [1, 10])
+        map.mark_dangerous()
+        start_room = map.rooms[(map.me.head.x, map.me.head.y)]
+        route = map.find_way_astar(start_room=start_room, end_room=map.np_room)
+        print route
+        print len(route)
+
+    def test_find_longest_way(self):
+        width = 100
+        height = 100
+        map = Map(width, height, [[[1, 0], [1, 1]], [[0, 3], [1, 3], [2, 3]]], 0, [1, 10])
+        map.mark_dangerous()
+        start_room = map.rooms[(map.me.head.x, map.me.head.y)]
+        route = map.find_longest_way(start_room=start_room, end_room=map.me.body[-1], max_steps=30)
+        print route
+
+    def test_find_longest_way2(self):
+        width = 5
+        height = 5
+        map = Map(width, height, [[[1, 0], [1, 1]], [[0, 3], [1, 3], [2, 3]]], 0, [1, 1])
+        map.mark_dangerous()
+        start_room = map.rooms[(map.me.head.x, map.me.head.y)]
+        route = map.find_longest_way(start_room=start_room, end_room=map.me.body[-1], max_steps=30)
+        print route
