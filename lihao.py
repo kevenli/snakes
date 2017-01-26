@@ -53,6 +53,7 @@ class Room(object):
 
     @property
     def exits(self):
+        return {key:self.__dict__[key] for key in ['north', 'west', 'south', 'east'] if self.__dict__[key] is not None}
         return {'north': self.north,
                 'west': self.west,
                 'south': self.south,
@@ -276,7 +277,7 @@ class Map(object):
     def safe_step(self, next_step):
         if len(self.me.body) == 0:
             return True
-        return self.find_longest_way(next_step, self.me.body[-1], max_steps=self.me.length) is not None
+        return self.find_longest_way(next_step, self.me.body[-1], max_steps=min(self.me.length, 15)) is not None
 
 
     def find_longest_way(self, start_room, end_room, route=None, max_steps=10):
@@ -289,7 +290,7 @@ class Map(object):
             if exit.has_snake:
                 continue
 
-            if exit.danger >= 1:
+            if exit.danger >= 1./4:
                 continue
 
             if exit in route:
@@ -314,6 +315,13 @@ def hli(width, height, snakes, i, np):
                     (game_map.me.head.y + game_map.height/2) % game_map.height),
                  (game_map.width/2, game_map.height/2)]
 
+    only_2ds = False
+    if game_map.me.length >= min(game_map.width, 20):
+        only_2ds
+        for room in game_map.rooms.values():
+            room.north = None
+            room.east = None
+
 
     dirs = {'north' : 0, 'east': 1, 'south': 2, 'west': 3}
     for end_room in end_rooms:
@@ -322,19 +330,19 @@ def hli(width, height, snakes, i, np):
         if route is not None:
             next_step = route[0]
 
-            if not game_map.safe_step(next_step):
+            if not only_2ds and not game_map.safe_step(next_step):
                 continue
 
-            for dir in list(dirs.keys()):
-                if start_room.exits[dir] == next_step:
+            for dir, exit in start_room.exits.items():
+                if exit == next_step:
                     return dirs[dir]
 
     safe_exits = [exit for exit in start_room.exits.values() if exit.danger < 1 and not exit.has_snake]
     if not safe_exits:
         return random.choice([0,1,2,3])
     next_step = random.choice(safe_exits)
-    for dir in list(dirs.keys()):
-        if start_room.exits[dir] == next_step:
+    for dir, exit in start_room.exits.items():
+        if exit == next_step:
             return dirs[dir]
 
 def test_routes(map):
