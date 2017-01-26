@@ -39,7 +39,7 @@ class MapTest(TestCase):
         end = (0,51)
         map = Map(width, height, [[[0,0]]], 0, [1,1])
 
-        map.render_dangerous()
+        map.mark_dangerous()
         map.print_map()
 
     def test_route(self):
@@ -51,7 +51,7 @@ class MapTest(TestCase):
 
         start_room = map.rooms[(map.me.head.x, map.me.head.y)]
 
-        map.render_dangerous()
+        map.mark_dangerous()
 
         routes = []
 
@@ -72,3 +72,42 @@ class MapTest(TestCase):
 
         else:
             print 'not fast route'
+
+    def test_find_way_astar(self):
+        width = 100
+        height = 100
+        map = Map(width, height, [[[0,0]]], 0, [10,10])
+        start_room = map.rooms[(map.me.head.x, map.me.head.y)]
+
+        route = map.find_way_astar(start_room=start_room, end_room=map.np_room)
+        print route
+        print len(route)
+
+    def test_find_way_astar_with_block(self):
+        width = 100
+        height = 100
+        map = Map(width, height, [[[1, 0]], [[0,3], [1,3], [2,3]]], 0, [1, 10])
+        start_room = map.rooms[(map.me.head.x, map.me.head.y)]
+        route = map.find_way_astar(start_room=start_room, end_room=map.np_room)
+        print route
+        print len(route)
+
+    def test_find_way_astar_with_block(self):
+        width = 100
+        height = 100
+        map = Map(width, height, [[[1, 0]], [[0, 3], [1, 3], [2, 3]]], 0, [1, 10])
+        start_room = map.rooms[(map.me.head.x, map.me.head.y)]
+        route = map.find_way_astar(start_room=start_room, end_room=map.np_room)
+        print route
+        print len(route)
+
+    def test_find_way_astar_with_dangerous(self):
+        width = 100
+        height = 100
+        map = Map(width, height, [[[1, 0]], [[0, 3], [1, 3], [2, 3]]], 0, [1, 10])
+        map.mark_dangerous()
+        start_room = map.rooms[(map.me.head.x, map.me.head.y)]
+        route = map.find_way_astar(start_room=start_room, end_room=map.np_room)
+        print route
+        print len(route)
+

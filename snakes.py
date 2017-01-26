@@ -4,6 +4,7 @@ import os
 import sys
 import time
 import ctypes
+import lihao
 
 def hwang(width, height, snakes, i, np):
     dataGrid = [[0 for col in range(width)] for row in range(height)]#初始化数据矩阵
@@ -51,7 +52,8 @@ def awei(width, height, snakes, i, np):
     return hwang(width, height, snakes, i, np)
 
 def hli(width, height, snakes, i, np):
-    return hwang(width, height, snakes, i, np)
+    #return hwang(width, height, snakes, i, np)
+    return lihao.hli(width, height, snakes, i, np)
 
 def xcao(width, height, snakes, i, np):
     return hwang(width, height, snakes, i, np)
@@ -152,7 +154,8 @@ while True:
                 cursorPosition.X = j * 2
                 cursorPosition.Y = i
                 ctypes.windll.kernel32.SetConsoleCursorPosition(soh, cursorPosition)
-                print drawGridBuf[i][j],
+                #print(drawGridBuf[i][j], end='')
+                print(drawGridBuf[i][j], end='')
                 sys.stdout.flush()
     time.sleep(0.1)
     d = [0] * len(snakes)
