@@ -139,3 +139,30 @@ class MapTest(TestCase):
         start_room = map.rooms[(map.me.head.x, map.me.head.y)]
         route = map.find_longest_way(start_room=start_room, end_room=map.me.body[-1], max_steps=30)
         print route
+
+    def test_safe_step(self):
+        width = 5
+        height = 5
+        me = [[1,3], [1,4], [1,5]]
+        snake1 = [[2,3], [2,2], [2,1], [2,0], [1,0], [0,0], [0,1], [0,2]]
+        np = [1,1]
+        map = Map(width, height, [me, snake1], 0, np)
+        map.mark_dangerous()
+        #map.print_map()
+        #start_room = map.rooms[(map.me.head.x, map.me.head.y)]
+        next_step = map.rooms[(1,1)]
+        is_safe = map.safe_step(next_step)
+        self.assertFalse(is_safe)
+
+    def test_safe_step2(self):
+        width = 5
+        height = 5
+        me = [[1, 3], [1, 4], [1, 5]]
+        np = [1, 1]
+        map = Map(width, height, [me], 0, np)
+        map.mark_dangerous()
+        #map.print_map()
+        # start_room = map.rooms[(map.me.head.x, map.me.head.y)]
+        next_step = map.rooms[(1, 1)]
+        is_safe = map.safe_step(next_step)
+        self.assertTrue(is_safe)

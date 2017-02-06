@@ -87,6 +87,7 @@ width = 60
 height = 60
 fn = [(hwang, '王寒'), (ylin, '林叶挺'), (yxiong, '熊扬'), (awei, '韦安云'), (hli, '李昊'), (xcao, '曹宣勇'), (bhu, '胡斌'), (fyang, '杨帆'), (rchen, '陈荣进'), (ygui, '桂永适'), (tji, '纪彤坤'), (wliao, '廖威')]
 #fn = [(hwang, '王寒')]
+#fn = [(hli, '李昊')]
 
 
 heads = random.sample(list(range(width * height)), len(fn))
@@ -157,7 +158,7 @@ while True:
                 #print(drawGridBuf[i][j], end='')
                 print(drawGridBuf[i][j], end='')
                 sys.stdout.flush()
-    time.sleep(0.1)
+    #time.sleep(0.1)
     d = [0] * len(snakes)
     for f, i in zip(fn, range(len(snakes))):
         d[i] = f[0](width, height, snakes, i, np)
