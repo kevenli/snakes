@@ -219,6 +219,16 @@ class Map(object):
             close_list.append(current_node)
 
             for exit in list(current_node.exits.values()):
+            
+                if exit == end_room:
+                    path = [end_room]
+                    node = end_room
+                    node.parent = current_node
+                    while node.parent is not None:
+                        path.insert(0, node.parent)
+                        node = node.parent
+                    return path[1:]
+                
                 if exit.has_snake:
                     continue
 
@@ -242,13 +252,7 @@ class Map(object):
                         exit.parent = current_node
                         exit.g = current_node.g + 1
 
-            if end_room in open_list:
-                path = [end_room]
-                node = end_room
-                while node.parent is not None:
-                    path.insert(0, node.parent)
-                    node = node.parent
-                return path[1:]
+
 
     def mark_dangerous(self, snake_heads=None, depth=0, max_depth=5):
         '''
@@ -275,7 +279,7 @@ class Map(object):
         self.mark_dangerous(all_exits, depth + 1, max_depth=max_depth)
 
     def safe_step(self, next_step, max_length=None):
-        if len(self.me.body) == 0:
+        if len(self.me.body) == 0 and next_step.danger < 1:
             return True
         #return self.find_longest_way(next_step, self.me.body[-1], max_steps=min(self.me.length, 15)) is not None
 
@@ -285,19 +289,11 @@ class Map(object):
 
         while len(open_list) > 0:
             current = open_list.pop(0)
-            if current.has_snake:
+            if current.has_snake or current.danger >= 1:
                 continue
             if current in close_list:
                 continue
             for next_exit in current.exits.values():
-                # if next_exit == next_step:
-                #     continue
-                # if next_exit in close_list:
-                #     continue
-                # if next_exit.has_snake:
-                #     continue
-                # if next_exit not in close_list and not next_exit.has_snake:
-                #     open_list.append(next_exit)
                 open_list.append(next_exit)
             close_list.append(current)
             if max_length and len(close_list) > max_length:
@@ -339,9 +335,9 @@ def hli(width, height, snakes, i, np):
     game_map = Map(width, height, copy.copy(snakes), i, copy.copy(np))
     game_map.mark_dangerous()
     start_room = game_map.rooms[(game_map.me.head.x, game_map.me.head.y)]
-    end_rooms = [game_map.np_room, ((game_map.me.head.x + game_map.width/2) % game_map.width,
-                    (game_map.me.head.y + game_map.height/2) % game_map.height),
-                 (game_map.width/2, game_map.height/2)]
+    end_rooms = [game_map.np_room, ((game_map.me.head.x + game_map.width//2) % game_map.width,
+                    (game_map.me.head.y + game_map.height//2) % game_map.height),
+                 (game_map.width//2, game_map.height//2)]
 
     only_2ds = False
     # if game_map.me.length >= min(game_map.width, 20):
